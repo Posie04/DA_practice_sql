@@ -29,9 +29,9 @@ where not referee_id = 2 or referee_id is null;
 
 --ex5
 SELECT survived,
-sum(CASE WHEN pclass = 1 THEN 1 ELSE 0 END) AS first_class,
-sum(CASE WHEN pclass = 2 THEN 1 ELSE 0 END) AS second_class,
-sum(CASE WHEN pclass = 3 THEN 1 ELSE 0 END) AS third_class
+sum(case when pclass = 1 then 1 else 0 end) AS first_class,
+sum(case when pclass = 2 then 1 else 0 end) AS second_class,
+sum(case when pclass = 3 then 1 else 0 end) AS third_class
 FROM titanic
 GROUP BY survived
 
