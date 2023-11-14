@@ -13,7 +13,7 @@ SELECT
   ROUND(CAST
     (SUM(item_count*order_occurrences)
         /SUM(order_occurrences)
-    AS DECIMAL)
+    AS DECIMAL) ---- dùng để đổi từ interger sang decimal
   ,1) AS mean
 FROM items_per_order;
 
