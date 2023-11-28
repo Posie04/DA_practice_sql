@@ -6,7 +6,7 @@ from job_listings
 group by company_id
 having count(company_id) > 1) as new_table
 
---ex 2: khom giải được
+--ex 2: ko giải được
 select product,
 sum(spend) as total_spend 
 FROM product_spend
@@ -98,13 +98,42 @@ trans.trans_total_amount,
 approved.approved_total_amount
 from approved
 join trans
-on approved.country=trans.country
-group by trans.country, Date_format(trans.trans_date, '%Y-%m')
+on approved.country=trans.coulỗi
+with table1 as
+(select a.user_id,
+a.num_movie,
+b.name
+from (select user_id,
+count(movie_id) as num_movie
+from MovieRating
+group by user_id) as a
+join Users as b
+on a.user_id = b.user_id
+having a.num_movie=max(a.num_movie)),
 
---ex 7: không hiểu đề huhu
+table2 as 
+(select a.title, max(b.ave), a.movie_id from
+(select movie_id,
+avg(rating) as ave
+from MovieRating
+where date(created_at) between "2020-02-01" and "2020-02-29"
+group by movie_id) as b
+join Movies as a
+on b.movie_id=a.movie_id)
 
---ex8:
+select name,title
+from MovieRating as c
+join table1 as a on a.user_id=c.user_id
+join table2 as b on b.movie_id=c.movie_id
 
+--ex12
+with a as
+(select requester_id as id from RequestAccepted
+union all
+select accepter_id as id from RequestAccepted)
 
-
-
+select id, count(id) as num
+from a
+group by id
+order by num desc
+limit 1
