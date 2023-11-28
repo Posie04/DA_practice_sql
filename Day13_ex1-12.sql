@@ -126,6 +126,30 @@ from MovieRating as c
 join table1 as a on a.user_id=c.user_id
 join table2 as b on b.movie_id=c.movie_id
 
+--ex8
+select customer_id from
+(
+select customer_id,
+count(customer_id)
+from customer
+group by customer_id
+having count(customer_id) = (select count(product_key) from product)) as new
+
+--ex9
+select s.employee_id
+from (select * from employees
+where salary < 30000) as s
+join employees as b
+on s.employee_id = b.manager_id 
+
+--ex10
+select count (company_id) as duplicate_companies from 
+(select company_id,
+count(company_id)
+from job_listings
+group by company_id
+having count(company_id) > 1) as new_table
+  
 --ex12
 with a as
 (select requester_id as id from RequestAccepted
