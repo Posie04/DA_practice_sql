@@ -6,22 +6,29 @@ from job_listings
 group by company_id
 having count(company_id) > 1) as new_table
 
---ex 2: ko giải được
-select product,
+--ex 2: 
+with a AS
+(
+select product, category,
 sum(spend) as total_spend 
 FROM product_spend
 where (transaction_date between '01/01/2022' and '12/30/2022') and (
 category = 'appliance')
-group by product
-having sum(spend) DESC
-
-select product,
+group by product, category
+ORDER BY sum(spend) DESC limit 2),
+b as 
+(
+select product, category,
 sum(spend) as total_spend 
 FROM product_spend
 where (transaction_date between '01/01/2022' and '12/30/2022') and (
 category = 'electronics')
-group by product
-having sum(spend) DESC
+group by product, category
+order by sum(spend) DESC limit 2 )
+
+select category, product, total_spend from a
+UNION ALL
+select category, product, total_spend from b
 
 -- ex 3
 SELECT count(policy_holder_id) FROM
@@ -69,63 +76,22 @@ inner join July
 on June.user_id=July.user_id
 group by July.current
 
---ex 6: ko dùng được to_char????/ lúc chạy bị lỗi 1 lỗi :<
-with trans AS 
-(
-select country, trans_date,
-Date_format(trans_date, '%Y-%m'),
-count(id) as trans_count, 
-sum(amount) as trans_total_amount
-from transactions
-group by country,Date_format(trans_date, '%Y-%m')),
+--ex 6:
+SELECT 
+    DATE_FORMAT(trans_date, '%Y-%m') AS month
+    , country
+    , COUNT(*) AS trans_count
+    , SUM(IF(state = 'approved', 1, 0)) AS approved_count
+    , SUM(amount) AS trans_total_amount
+    , SUM(IF(state = 'approved', amount, 0)) AS approved_total_amount
+FROM Transactions
+GROUP BY month, country
 
-approved AS
-(
-select country, trans_date,
-Date_format(trans_date, '%Y-%m'),
-count(id) as approved_count,  
-sum(amount) as approved_total_amount
-from transactions
-where state = 'approved'
-group by country,Date_format(trans_date, '%Y-%m'))
-
-select
-Date_format(trans.trans_date, '%Y-%m') as month,
-trans.country,
-trans.trans_count,  
-approved.approved_count, 
-trans.trans_total_amount,
-approved.approved_total_amount
-from approved
-join trans
-on approved.country=trans.coulỗi
-with table1 as
-(select a.user_id,
-a.num_movie,
-b.name
-from (select user_id,
-count(movie_id) as num_movie
-from MovieRating
-group by user_id) as a
-join Users as b
-on a.user_id = b.user_id
-having a.num_movie=max(a.num_movie)),
-
-table2 as 
-(select a.title, max(b.ave), a.movie_id from
-(select movie_id,
-avg(rating) as ave
-from MovieRating
-where date(created_at) between "2020-02-01" and "2020-02-29"
-group by movie_id) as b
-join Movies as a
-on b.movie_id=a.movie_id)
-
-select name,title
-from MovieRating as c
-join table1 as a on a.user_id=c.user_id
-join table2 as b on b.movie_id=c.movie_id
-
+--ex7
+select product_id, min(year) as first_year,
+quantity, price from sales
+group by product_id
+  
 --ex8
 select customer_id from
 (
@@ -149,6 +115,33 @@ count(company_id)
 from job_listings
 group by company_id
 having count(company_id) > 1) as new_table
+
+--ex 11
+with table1 as
+(select a. num_movie, 
+b.name as results
+from (select user_id,
+count(movie_id) as num_movie
+from MovieRating
+group by user_id) as a
+join Users as b
+on a.user_id = b.user_id
+having a.num_movie=max(a.num_movie) ),
+
+table2 as 
+(select a.title as results, b.ave, a.movie_id from
+(select movie_id,
+avg(rating) as ave
+from MovieRating
+where date(created_at) between "2020-02-01" and "2020-02-29"
+group by movie_id) as b
+join Movies as a
+on b.movie_id=a.movie_id
+order by b.ave DESC limit 1)
+
+select results from table1
+union all
+select results from table2
   
 --ex12
 with a as
