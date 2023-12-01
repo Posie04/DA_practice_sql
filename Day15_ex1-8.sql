@@ -74,16 +74,16 @@ ORDER BY category, ranking;
 --ex8
 WITH top_10_cte AS (
 SELECT 
-artists.artist_name,
+a.artist_name,
 DENSE_RANK() OVER (
-ORDER BY COUNT(songs.song_id) DESC) AS artist_rank
-FROM artists
-INNER JOIN songs
-ON artists.artist_id = songs.artist_id
-INNER JOIN global_song_rank AS ranking
-ON songs.song_id = ranking.song_id
-WHERE ranking.rank <= 10
-GROUP BY artists.artist_name)
+ORDER BY COUNT(b.song_id) DESC) AS artist_rank
+FROM artists as a
+INNER JOIN songs as b 
+ON a.artist_id = b.artist_id
+INNER JOIN global_song_rank AS c
+ON b.song_id = c.song_id
+WHERE c.rank <= 10
+GROUP BY a.artist_name)
 
 SELECT artist_name, artist_rank
 FROM top_10_cte
