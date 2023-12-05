@@ -13,6 +13,10 @@ alter column sales type decimal(10,2), ---- có cách nào chuyển sang float k
 alter orderdate type TIMESTAMP USING orderdate::TIMESTAMP; /* sự khác biệt giữa timestamp with time zone: tự động chỉnh theo địa phương >< timestamp without time zone: không tự động chỉnh */
   
 ---Check NULL/BLANK (‘’)  ở các trường: ORDERNUMBER, QUANTITYORDERED, PRICEEACH, ORDERLINENUMBER, SALES, ORDERDATE.
+
+SELECT * FROM  public.sales_dataset_rfm_prj
+WHERE ordernumber IS NULL 
+---
 select 
 sum(case when ordernumber is null then 1
 	else 0 end ) as order_null,
@@ -53,7 +57,13 @@ from public.sales_dataset_rfm_prj
   
 ---Chuẩn hóa CONTACTLASTNAME, CONTACTFIRSTNAME theo định dạng chữ cái đầu tiên viết hoa, chữ cái tiếp theo viết thường. /* không hiểu sao dùng lệnh insert được? */
 Gợi ý: ( ADD column sau đó INSERT)
+----- sửa
+update public.sales_dataset_rfm_prj
+set contactlastname = upper(left(contactlastname,1)) || right(contactlastname,length(contactlastname)-1)
 
+update public.sales_dataset_rfm_prj
+set contactfirstname = upper(left(contactfirstname,1)) || right(contactfirstname,length(contactfirstname)-1)	
+-----
 select 
 upper(left(contactfirstname,1)) || right(contactfirstname,length(contactfirstname)-1) as up_first_name,
 upper(left(contactlastname,1)) || right(contactlastname,length(contactlastname)-1) as up_last_name
