@@ -183,6 +183,7 @@ from a
 
 ---Total_profit,Profit_to_cost_ratio
 /* Tổng doanh thu - tổng chi phí"*/
+
 with doanhthu as
 (select FORMAT_TIMESTAMP('%Y-%m', created_at) as month,
 sum (sale_price) as TPV,
