@@ -130,7 +130,6 @@ count(order_id) as TPO
 from bigquery-public-data.thelook_ecommerce.order_items
 group by FORMAT_TIMESTAMP('%Y-%m', created_at)
 
-
 --Total_cost
 with a as
 (
@@ -140,35 +139,20 @@ from bigquery-public-data.thelook_ecommerce.products as a
 inner join bigquery-public-data.thelook_ecommerce.inventory_items as b
 on a.id=b.product_id
 where b.sold_at is null)
-select month, tongchiphi from
+
+  select month, tongchiphi from
 ( select 
 FORMAT_TIMESTAMP('%Y-%m', created_at) as month, sum(cost) as tongchiphi from a
 group by FORMAT_TIMESTAMP('%Y-%m', created_at)
 )
 order by month
 
-----Revenue_growth
+----Revenue_growth,order_growth
 with a as
 (
-select month,TPV,
+select month,TPV,TPO,
 lead(month) over(order by month asc) as next_month,
 lead(TPV) over(order by month asc) as next_TPV,
-from (
-select FORMAT_TIMESTAMP('%Y-%m', created_at) as month,
-sum (sale_price) as TPV,
-count(order_id) as TPO
-from bigquery-public-data.thelook_ecommerce.order_items
-group by FORMAT_TIMESTAMP('%Y-%m', created_at))
-order by month
-)
-select round(((next_TPV-TPV)*100/TPV),2) as revenue_growth
-from a
-
----Order_growth
-with a as
-(
-select month,TPO,
-lead(month) over(order by month asc) as next_month,
 lead(TPO) over(order by month asc) as next_TPO,
 from (
 select FORMAT_TIMESTAMP('%Y-%m', created_at) as month,
@@ -178,7 +162,9 @@ from bigquery-public-data.thelook_ecommerce.order_items
 group by FORMAT_TIMESTAMP('%Y-%m', created_at))
 order by month
 )
-select round(((next_TPO-TPO)*100/TPO),2) as order_growth
+select month,
+  round(((next_TPV-TPV)*100/TPV),2) as revenue_growth,
+  round(((next_TPO-TPO)*100/TPO),2) as order_growth
 from a
 
 ---Total_profit,Profit_to_cost_ratio
@@ -209,6 +195,128 @@ order by month)
  round((a.TPV-b.tongchiphi)*100/b.tongchiphi,2) as profit_to_cost_ratio 
  from doanhthu as a
  join chiphi as b on a.month=b.month
+
+------------- bản full 
+
+with a as /* month-year*/
+(
+   select * from
+  (
+  select FORMAT_TIMESTAMP('%Y-%m', created_at) as month,
+  extract (year from created_at) as year
+  from bigquery-public-data.thelook_ecommerce.orders
+  group by FORMAT_TIMESTAMP('%Y-%m', created_at), extract (year from created_at)
+  )
+  order by month
+),
+f as /*tongloinhuan-profit_to_cost_ratio-tongchiphi-revenue_growth-order_growth-TPV-TPO*/
+(
+select a.month, a.TPV,a.TPO,b.tongchiphi, a.revenue_growth,a.order_growth,
+   a.TPV-b.tongchiphi as loinhuan,
+   round((a.TPV-b.tongchiphi)*100/b.tongchiphi,2) as profit_to_cost_ratio 
+   from (
+      select month,TPO,TPV,
+      round(((next_TPV-TPV)*100/TPV),2) as revenue_growth,
+      round(((next_TPO-TPO)*100/TPO),2) as order_growth
+      from ( 
+      select month,TPV,TPO,
+      lead(month) over(order by month asc) as next_month,
+      lead(TPV) over(order by month asc) as next_TPV,
+      lead(TPO) over(order by month asc) as next_TPO,
+      from (
+      select FORMAT_TIMESTAMP('%Y-%m', created_at) as month,
+      sum (sale_price) as TPV,
+      count(order_id) as TPO
+      from bigquery-public-data.thelook_ecommerce.order_items
+      group by FORMAT_TIMESTAMP('%Y-%m', created_at))
+      order by month)
+    ) as a
+   full join 
+      (select month, tongchiphi from
+      (select 
+      FORMAT_TIMESTAMP('%Y-%m', created_at) as month, sum(cost) as tongchiphi from (
+      select a.id,b.product_id,a.cost,
+      b.created_at,b.sold_at
+      from bigquery-public-data.thelook_ecommerce.products as a
+      inner join bigquery-public-data.thelook_ecommerce.inventory_items as b
+      on a.id=b.product_id
+      where b.sold_at is null)
+      group by FORMAT_TIMESTAMP('%Y-%m', created_at)
+      )
+    order by month) as b on a.month=b.month
+    order by month
+  )
+create view vw_ecommerce_analyst as
+(
+select a.month, a.year, 
+f.TPO,f.TPV,f.tongchiphi, f.loinhuan, f.profit_to_cost_ratio
+f.revenue_growth,f.order_growth
+from a
+join f on a.month=f.month
+order by month)
+
+---------
+create or replace view vw_ecommerce_analyst as
+(
+select a.month, a.year, 
+f.TPO,f.TPV,f.tongchiphi, f.loinhuan, f.profit_to_cost_ratio,
+f.revenue_growth,f.order_growth
+from (
+   select * from
+  (
+  select FORMAT_TIMESTAMP('%Y-%m', created_at) as month,
+  extract (year from created_at) as year
+  from bigquery-public-data.thelook_ecommerce.orders
+  group by FORMAT_TIMESTAMP('%Y-%m', created_at), extract (year from created_at)
+  )
+  order by month
+) as a 
+join (
+select a.month, a.TPV,a.TPO,b.tongchiphi, a.revenue_growth,a.order_growth,
+   a.TPV-b.tongchiphi as loinhuan,
+   round((a.TPV-b.tongchiphi)*100/b.tongchiphi,2) as profit_to_cost_ratio 
+   from (
+      select month,TPO,TPV,
+      round(((next_TPV-TPV)*100/TPV),2) as revenue_growth,
+      round(((next_TPO-TPO)*100/TPO),2) as order_growth
+      from ( 
+      select month,TPV,TPO,
+      lead(month) over(order by month asc) as next_month,
+      lead(TPV) over(order by month asc) as next_TPV,
+      lead(TPO) over(order by month asc) as next_TPO,
+      from (
+      select FORMAT_TIMESTAMP('%Y-%m', created_at) as month,
+      sum (sale_price) as TPV,
+      count(order_id) as TPO
+      from bigquery-public-data.thelook_ecommerce.order_items
+      group by FORMAT_TIMESTAMP('%Y-%m', created_at))
+      order by month)
+    ) as a
+   full join 
+      (select month, tongchiphi from
+      (select 
+      FORMAT_TIMESTAMP('%Y-%m', created_at) as month, sum(cost) as tongchiphi from (
+      select a.id,b.product_id,a.cost,
+      b.created_at,b.sold_at
+      from bigquery-public-data.thelook_ecommerce.products as a
+      inner join bigquery-public-data.thelook_ecommerce.inventory_items as b
+      on a.id=b.product_id
+      where b.sold_at is null)
+      group by FORMAT_TIMESTAMP('%Y-%m', created_at)
+      )
+    order by month) as b on a.month=b.month
+    order by month
+  )
+ as f on a.month=f.month 
+order by month)
+
+
+
+
+
+  
+  
+
 
 
 
