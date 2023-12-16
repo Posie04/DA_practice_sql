@@ -181,11 +181,34 @@ order by month
 select round(((next_TPO-TPO)*100/TPO),2) as order_growth
 from a
 
----Total_profit
+---Total_profit,Profit_to_cost_ratio
+/* Tổng doanh thu - tổng chi phí"*/
+with doanhthu as
+(select FORMAT_TIMESTAMP('%Y-%m', created_at) as month,
+sum (sale_price) as TPV,
+count(order_id) as TPO
+from bigquery-public-data.thelook_ecommerce.order_items
+group by FORMAT_TIMESTAMP('%Y-%m', created_at)),
+chiphi as
+(
+select month, tongchiphi from
+  (select 
+    FORMAT_TIMESTAMP('%Y-%m', created_at) as month, sum(cost) as tongchiphi from (
+  select a.id,b.product_id,a.cost,
+  b.created_at,b.sold_at
+  from bigquery-public-data.thelook_ecommerce.products as a
+  inner join bigquery-public-data.thelook_ecommerce.inventory_items as b
+  on a.id=b.product_id
+  where b.sold_at is null)
+    group by FORMAT_TIMESTAMP('%Y-%m', created_at)
+  )
+order by month)
 
-
----Profit_to_cost_ratio
-
+ select a.month, a.TPV,b.tongchiphi, 
+ a.TPV-b.tongchiphi as loinhuan,
+ round((a.TPV-b.tongchiphi)*100/b.tongchiphi,2) as profit_to_cost_ratio 
+ from doanhthu as a
+ join chiphi as b on a.month=b.month
 
 
 
