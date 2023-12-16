@@ -182,7 +182,6 @@ select round(((next_TPO-TPO)*100/TPO),2) as order_growth
 from a
 
 ---Total_profit,Profit_to_cost_ratio
-/* Tổng doanh thu - tổng chi phí"*/
 
 with doanhthu as
 (select FORMAT_TIMESTAMP('%Y-%m', created_at) as month,
