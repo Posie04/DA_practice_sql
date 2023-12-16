@@ -25,5 +25,24 @@ join b on a.time1=b.time2
 where a.time1 between '2019-01' and '2022-04'
 order by a.time1 
 
----- Thống kê giá trị đơn hàng trung bình và tổng số người dùng khác nhau mỗi tháng  (Từ 1/2019-4/2022)
+=> insight: số lượng người dùng tăng theo thời gian, số lượng đơn hàng hoàn thành cũng tăng dần. tuy nhiên tiến độ hoàn thành đơn rất chậm
+
+---Thống kê giá trị đơn hàng trung bình và tổng số người dùng khác nhau mỗi tháng ( Từ 1/2019-4/2022)
+/* Output: month_year ( yyyy-mm), distinct_users, average_order_value
+giá trị đơn hàng trung bình = tổng giá trị đơn hàng trong tháng/số lượng đơn hàng */
+
+with a as
+(
+select FORMAT_TIMESTAMP('%Y-%m', created_at) as year_month, 
+count(distinct user_id) as distinct_users, 
+sum(sale_price)/count(order_id) as average_order_value
+from bigquery-public-data.thelook_ecommerce.order_items
+where (FORMAT_TIMESTAMP('%Y-%m', created_at)) between '2019-01' and '2022-04'
+group by FORMAT_TIMESTAMP('%Y-%m', created_at)
+)
+select * from a
+order by year_month asc
+
+--- Tìm các khách hàng có trẻ tuổi nhất và lớn tuổi nhất theo từng giới tính ( Từ 1/2019-4/2022)
+
 
