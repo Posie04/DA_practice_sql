@@ -67,13 +67,43 @@ select first_name,last_name, gender, age,tag,
 count(tag) over(partition by gender,tag) from a
 where tag is not null)
 
-select tag,age,gender,
+select tag,age,
 count(tag) from output
-group by tag,age,gender
+group by tag,age
 
 => insight: nhiều người già sử dụng hơn người trẻ, lớn nhất là 70 tuổi và nhỏ nhất là 12 tuổi
 
+---Thống kê top 5 sản phẩm có lợi nhuận cao nhất từng tháng (xếp hạng cho từng sản phẩm)
+with a as
+(
+select FORMAT_TIMESTAMP('%Y-%m', created_at) as time,
+product_id, product_name,
+product_retail_price as sales,
+cost,
+count(id)*(product_retail_price-cost) as profit
+from bigquery-public-data.thelook_ecommerce.inventory_items
+group by FORMAT_TIMESTAMP('%Y-%m', created_at),product_id,product_name, product_retail_price, cost
+)
+select * from (select *,
+dense_rank() over(partition by time order by profit desc) as rank
+from a 
+where time between '2019-01' and '2020-04'
+order by time)
+where rank<=5
 
+---Thống kê tổng doanh thu theo ngày của từng danh mục sản phẩm (category) trong 3 tháng qua ( giả sử ngày hiện tại là 15/4/2022)
+with a as 
+(
+select FORMAT_TIMESTAMP('%Y-%m-%d', created_at) as time,
+product_category,
+product_retail_price as sale,
+from bigquery-public-data.thelook_ecommerce.inventory_items
+)
+select time,product_category,
+sum(sale) as revenue from a
+where time between '2022-04-15' and '2022-07-15' 
+group by time,product_category
+order by time 
 
 
 
