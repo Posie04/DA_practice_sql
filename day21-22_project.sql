@@ -310,6 +310,47 @@ select a.month, a.TPV,a.TPO,b.tongchiphi, a.revenue_growth,a.order_growth,
  as f on a.month=f.month 
 order by month)
 
+--- rentention analysis
+with table as (
+select user_id,
+ FORMAT_TIMESTAMP('%Y-%m',first_purchase_date) as cohort_date,
+created_at,
+(extract (year from created_at) - extract (year from first_purchase_date))*12
++ (extract (month from created_at) - extract (month from first_purchase_date)) +1 as index
+from (
+select
+user_id,
+min(created_at) over(partition by user_id) as first_purchase_date,created_at
+ from bigquery-public-data.thelook_ecommerce.order_items) as a
+ order by cohort_date, created_at
+),
+xxx as(
+ select cohort_date,index,
+ count(distinct user_id) as cnt
+ from table
+ group by cohort_date, index
+ order by cohort_date, index
+),
+user as(
+select cohort_date,
+sum(case when index=1 then cnt else 0 end) as m1,
+sum(case when index=2 then cnt else 0 end) as m2,
+sum(case when index=3 then cnt else 0 end) as m3,
+sum(case when index=4 then cnt else 0 end) as m4
+from xxx
+group by cohort_date
+order by cohort_date)
+
+select cohort_date,
+round(100*m1/m1,2) || '%' as m1,
+round(100*m2/m1,2) || '%' as m2,
+round(100*m3/m1,2) || '%' as m3,
+round(100*m4/m1,2) || '%' as m4
+from user
+
+=> insight: tỉ lệ khách hàng quay lại vô cùng thấp, đa phần là khách mới, khách cũ quay lại gần như không được 1/10 khách ban đầu
+
+
 
 
 
